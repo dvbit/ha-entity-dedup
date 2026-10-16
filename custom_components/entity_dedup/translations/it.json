@@ -20,14 +20,16 @@
           "max_corrections": "Correzioni massime per esecuzione",
           "log_max_entries": "Righe di log conservate",
           "denylist_domains": "Domini esclusi",
-          "denylist_entities": "Entità escluse"
+          "denylist_entities": "Entità escluse",
+          "handle_missing_base": "Correggi i duplicati con originale eliminato"
         },
         "data_description": {
           "delay_minutes": "Attesa dopo l'avvio di Home Assistant prima dell'esecuzione automatica (1–120).",
           "max_corrections": "Se i casi idonei sono di più, non si corregge nulla e ricevi una notifica (1–100). Superabile una volta con run_now ignore_limit.",
           "log_max_entries": "Le righe più vecchie vengono eliminate dopo ogni scrittura (50–5000).",
           "denylist_domains": "I casi con entità di questi domini vengono ignorati in silenzio.",
-          "denylist_entities": "I casi che coinvolgono queste entità (base o `_N`) vengono ignorati in silenzio, anche da run_now."
+          "denylist_entities": "I casi che coinvolgono queste entità (base o `_N`) vengono ignorati in silenzio, anche da run_now.",
+          "handle_missing_base": "Gestisce anche `X_N` quando `X` non è più nel registro ma Home Assistant la ricorda tra le entità eliminate della stessa integrazione (stessa config entry). Spenta per default."
         }
       }
     },
@@ -36,59 +38,10 @@
       "invalid_entity_id": "entity_id non valido."
     }
   },
-  "entity": {
-    "sensor": {
-      "last_run": {
-        "name": "Ultima esecuzione"
-      },
-      "last_fixed": {
-        "name": "Corrette nell'ultima esecuzione"
-      },
-      "last_skipped": {
-        "name": "Non corrette nell'ultima esecuzione"
-      }
-    },
-    "switch": {
-      "enabled": {
-        "name": "Esecuzione automatica dopo il riavvio"
-      }
-    }
-  },
-  "services": {
-    "run_now": {
-      "name": "Esegui ora",
-      "description": "Rileva e corregge ora le entità duplicate `_N`. Funziona anche con l'esecuzione automatica spenta.",
-      "fields": {
-        "dry_run": {
-          "name": "Simulazione",
-          "description": "Solo rilevazione, log e notifica; il registro non viene modificato."
-        },
-        "ignore_limit": {
-          "name": "Ignora limite",
-          "description": "Ignora il numero massimo di correzioni solo per questa esecuzione."
-        },
-        "entity_id": {
-          "name": "Entità base",
-          "description": "Limita l'esecuzione a questo entity_id base (senza `_N`), preso alla lettera."
-        }
-      }
-    },
-    "get_log": {
-      "name": "Leggi log",
-      "description": "Restituisce le righe del log persistente, dalla più recente.",
-      "fields": {
-        "limit": {
-          "name": "Limite",
-          "description": "Numero massimo di righe (1–500)."
-        },
-        "since": {
-          "name": "Da",
-          "description": "Solo righe scritte dopo questo istante."
-        }
-      }
-    }
-  },
   "exceptions": {
+    "notify_missing_base": {
+      "message": "originale eliminato"
+    },
     "already_running": {
       "message": "Un'esecuzione è già in corso, riprova più tardi."
     },
@@ -142,6 +95,58 @@
     },
     "notify_outcome_error_rollback_failed": {
       "message": "errore, RIPRISTINO FALLITO"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Ultima esecuzione"
+      },
+      "last_fixed": {
+        "name": "Corrette nell'ultima esecuzione"
+      },
+      "last_skipped": {
+        "name": "Non corrette nell'ultima esecuzione"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Esecuzione automatica dopo il riavvio"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Esegui ora",
+      "description": "Rileva e corregge ora le entità duplicate `_N`. Funziona anche con l'esecuzione automatica spenta.",
+      "fields": {
+        "dry_run": {
+          "name": "Simulazione",
+          "description": "Solo rilevazione, log e notifica; il registro non viene modificato."
+        },
+        "ignore_limit": {
+          "name": "Ignora limite",
+          "description": "Ignora il numero massimo di correzioni solo per questa esecuzione."
+        },
+        "entity_id": {
+          "name": "Entità base",
+          "description": "Limita l'esecuzione a questo entity_id base (senza `_N`), preso alla lettera."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Leggi log",
+      "description": "Restituisce le righe del log persistente, dalla più recente.",
+      "fields": {
+        "limit": {
+          "name": "Limite",
+          "description": "Numero massimo di righe (1–500)."
+        },
+        "since": {
+          "name": "Da",
+          "description": "Solo righe scritte dopo questo istante."
+        }
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 """Constants for Entity Dedup.
 
 Every value here is referenced by the functional specification
-(docs/specification-v1.0.md). Section numbers are given as "§n".
+(docs/specification-v1.1.md). Section numbers are given as "§n".
 """
 
 from __future__ import annotations
@@ -26,6 +26,8 @@ CONF_MAX_CORRECTIONS: Final = "max_corrections"
 CONF_LOG_MAX_ENTRIES: Final = "log_max_entries"
 CONF_DENYLIST_DOMAINS: Final = "denylist_domains"
 CONF_DENYLIST_ENTITIES: Final = "denylist_entities"
+# §5.8 (v1.1): handle live X_N whose X is only among deleted registry entries.
+CONF_HANDLE_MISSING_BASE: Final = "handle_missing_base"
 
 DEFAULT_OPTIONS: Final = {
     CONF_DELAY_MINUTES: 10,
@@ -33,6 +35,7 @@ DEFAULT_OPTIONS: Final = {
     CONF_LOG_MAX_ENTRIES: 500,
     CONF_DENYLIST_DOMAINS: [],
     CONF_DENYLIST_ENTITIES: [],
+    CONF_HANDLE_MISSING_BASE: False,
 }
 
 # (min, max) ranges from §6.
@@ -82,6 +85,11 @@ REASON_DEVICE_CLASS_MISMATCH: Final = "device_class_mismatch"
 REASON_UNIT_MISMATCH: Final = "unit_mismatch"
 REASON_REFERENCES_FOUND: Final = "references_found"
 REASON_THRESHOLD: Final = "threshold_exceeded"
+# §5.8: deleted X and live X_N belong to different config entries.
+REASON_CONFIG_ENTRY_MISMATCH: Final = "config_entry_mismatch"
+
+# §5.8 case type, stored in details.case_type of the log rows.
+CASE_TYPE_MISSING_BASE: Final = "missing_base"
 
 # --- §5.3 Reference types ------------------------------------------------
 REF_AUTOMATION_SCRIPT_SCENE: Final = "a"

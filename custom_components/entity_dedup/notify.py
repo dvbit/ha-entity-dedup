@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.translation import async_get_translations
 
 from .const import (
+    CASE_TYPE_MISSING_BASE,
     DOMAIN,
     NOTIFICATION_ID,
     NOTIFY_MAX_REFERENCES,
@@ -60,7 +61,13 @@ def _case_line(t: _Texts, row: dict) -> list[str]:
     """One line per case: X, X_N, outcome, reason (+ refs/stats/error)."""
     outcome = t(f"notify_outcome_{row['outcome']}")
     reason = f" — `{row['reason']}`" if row.get("reason") else ""
-    lines = [f"- `{row['base_entity_id']}` ← `{row['live_entity_id']}`: **{outcome}**{reason}"]
+    # §5.8: mark cases whose X was only among the deleted registry entries.
+    tag = (
+        f" ({t('notify_missing_base')})"
+        if (row.get("details") or {}).get("case_type") == CASE_TYPE_MISSING_BASE
+        else ""
+    )
+    lines = [f"- `{row['base_entity_id']}` ← `{row['live_entity_id']}`{tag}: **{outcome}**{reason}"]
     if row.get("extra_orphans"):
         extras = ", ".join(f"`{e}`" for e in row["extra_orphans"])
         lines.append(f"  - {t('notify_extra_orphans', extras=extras)}")
@@ -102,7 +109,11 @@ async def async_notify(hass: HomeAssistant, result: RunResult, max_corrections: 
         if row["outcome"] == OUTCOME_THRESHOLD_EXCEEDED:
             cases = row["details"].get("cases", [])
             lines.append(f"**{t('notify_threshold', count=len(cases), max=max_corrections)}**")
-            lines.extend(f"- `{c['base_entity_id']}` ← `{c['live_entity_id']}`" for c in cases)
+            lines.extend(
+                f"- `{c['base_entity_id']}` ← `{c['live_entity_id']}`"
+                + (f" ({t('notify_missing_base')})" if c.get("case_type") else "")
+                for c in cases
+            )
             lines.append("")
         else:
             lines.extend(_case_line(t, row))

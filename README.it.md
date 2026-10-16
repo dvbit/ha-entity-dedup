@@ -3,7 +3,7 @@
 <img src="icon.png" width="96" align="right" alt="icona">
 
 [![hacs](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
-![versione](https://img.shields.io/badge/versione-1.0.0-blue)
+![versione](https://img.shields.io/badge/versione-1.1.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.10%2B-03a9f4)
 
 🇬🇧 [Read in English](README.md)
@@ -12,7 +12,7 @@ Corregge **in automatico e in sicurezza, dopo ogni riavvio di Home Assistant**, 
 
 Quando un'integrazione ricrea un'entità mentre l'`entity_id` originale (`sensor.temperatura`) è ancora occupato da una voce orfana del registro, Home Assistant registra la nuova come `sensor.temperatura_2`. Entity Dedup elimina l'orfana, rinomina l'entità viva in `sensor.temperatura` e trasferisce le personalizzazioni (nome, icona, area, etichette, categorie, visibilità, esposizione agli assistenti vocali).
 
-Specifica di partenza: [docs/specification-v1.0.md](docs/specification-v1.0.md).
+Specifica di partenza: [docs/specification-v1.1.md](docs/specification-v1.1.md) ([v1.0](docs/specification-v1.0.md)).
 
 ## Come funziona
 
@@ -42,8 +42,22 @@ Usa solo le API pubbliche del registro entità. I file `.storage` non vengono ma
 | Righe di log conservate | 500 | 50–5000 | Conservazione del log persistente |
 | Domini esclusi | – | – | es. `light`, `sensor` |
 | Entità escluse | – | – | entity_id base o `_N` |
+| Correggi i duplicati con originale eliminato | spenta | – | Vedi sotto (v1.1) |
 
 Le opzioni si leggono al momento dell'esecuzione; salvarle non ricarica nulla.
+
+## Originale già eliminato (v1.1, opzionale)
+
+A volte `sensor.temperatura` non c'è più nel registro ma `sensor.temperatura_2` sì. Con **Correggi i duplicati con originale eliminato** attiva, Entity Dedup gestisce questo caso **solo se** Home Assistant ricorda ancora `sensor.temperatura` tra le entità *eliminate*, con **stessa integrazione e stessa config entry** della viva. In quel caso rinomina `_2` e ripristina nome, icona, area, etichette, categorie, visibilità ed esposizione dalla voce eliminata.
+
+Senza questa traccia non fa nulla: nomi come "Zona 2", "SIM 2" o "Porta 5" restano invariati. Le righe hanno `details.case_type: missing_base` e la notifica le indica come *originale eliminato*.
+
+```yaml
+# Prima verifica cosa verrebbe corretto
+action: entity_dedup.run_now
+data:
+  dry_run: true
+```
 
 ## Entità
 
@@ -151,13 +165,13 @@ automation:
 | `error_rollback_failed` | Ripristino fallito: esecuzione interrotta, snapshot nel log |
 | `interrupted` | HA fermato durante un caso: snapshot nel log, nessun ripristino automatico |
 
-Motivi: `multiple_live_candidates`, `orphan_disabled_or_hidden`, `orphan_no_config_entry`, `orphan_config_entry_not_loaded`, `live_no_config_entry`, `live_config_entry_not_loaded`, `orphan_device_mismatch`, `platform_mismatch`, `device_class_mismatch`, `unit_mismatch`, `references_found`.
+Motivi: `multiple_live_candidates`, `orphan_disabled_or_hidden`, `orphan_no_config_entry`, `orphan_config_entry_not_loaded`, `live_no_config_entry`, `live_config_entry_not_loaded`, `orphan_device_mismatch`, `platform_mismatch`, `device_class_mismatch`, `unit_mismatch`, `references_found`, `config_entry_mismatch` (v1.1).
 
 Tipi di riferimento: `a` automazioni/script/scene, `b` dashboard, `c` config entry, `d` file YAML + riga, `e` registro entità. Se una sorgente non è leggibile viene riportata come `scan_error:…` e il caso è saltato (prima la sicurezza).
 
 ## Limiti noti
 
-- Il caso con solo `X_N` e `X` assente dal registro non è gestito.
+- Il caso con solo `X_N` e `X` assente dal registro è gestito solo se `X` è ancora tra le voci eliminate e l'opzione è attiva.
 - Un re-pairing che crea un nuovo dispositivo viene saltato (`orphan_device_mismatch`).
 - Non sono analizzati sistemi esterni (AppDaemon, Node-RED, REST, YAML ESPHome, trigger vocali) né file fuori dalla directory di configurazione.
 - Le statistiche a lungo termine non vengono unite: quelle di `X_N` possono restare orfane (*Strumenti per sviluppatori → Statistiche*). Segnalato con `statistics_may_be_orphaned`.

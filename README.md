@@ -3,7 +3,7 @@
 <img src="icon.png" width="96" align="right" alt="icon">
 
 [![hacs](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz)
-![version](https://img.shields.io/badge/version-1.0.0-blue)
+![version](https://img.shields.io/badge/version-1.1.0-blue)
 ![HA](https://img.shields.io/badge/Home%20Assistant-2026.10%2B-03a9f4)
 
 🇮🇹 [Leggi in italiano](README.it.md)
@@ -12,7 +12,7 @@ Fixes `_2`, `_3`, … duplicate entities **automatically and safely after every 
 
 When an integration re-creates an entity while the original `entity_id` (`sensor.temperature`) is still held by an orphan registry entry, Home Assistant registers the new one as `sensor.temperature_2`. Entity Dedup removes the orphan, renames the live entity back to `sensor.temperature` and carries over your customisations (name, icon, area, labels, categories, visibility, voice assistant exposure).
 
-Specification: [docs/specification-v1.0.md](docs/specification-v1.0.md) (Italian).
+Specification: [docs/specification-v1.1.md](docs/specification-v1.1.md) (Italian; [v1.0](docs/specification-v1.0.md)).
 
 ## How it works
 
@@ -42,8 +42,22 @@ Only the public entity registry API is used. `.storage` files are never edited.
 | Log rows kept | 500 | 50–5000 | Retention of the persistent log |
 | Excluded domains | – | – | e.g. `light`, `sensor` |
 | Excluded entities | – | – | Base or `_N` entity_ids |
+| Fix duplicates whose original was deleted | off | – | See below (v1.1) |
 
 Options are read at run time; saving them reloads nothing.
+
+## Original already deleted (v1.1, optional)
+
+Sometimes `sensor.temperature` is gone from the registry but `sensor.temperature_2` is still there. With **Fix duplicates whose original was deleted** on, Entity Dedup handles this case **only if** Home Assistant still remembers `sensor.temperature` among its *deleted* entities, with the **same integration and config entry** as the live one. It then renames `_2` back and restores name, icon, area, labels, categories, visibility and exposure from the deleted entry.
+
+Without that trace nothing happens: names such as "Zone 2", "SIM 2" or "Port 5" are left alone. Rows carry `details.case_type: missing_base` and the notification marks them as *original deleted*.
+
+```yaml
+# Check first what would be fixed
+action: entity_dedup.run_now
+data:
+  dry_run: true
+```
 
 ## Entities
 
@@ -151,13 +165,13 @@ automation:
 | `error_rollback_failed` | Restore failed: run stopped, snapshot in log |
 | `interrupted` | HA stopped during a case: snapshot in log, no automatic restore |
 
-Reasons: `multiple_live_candidates`, `orphan_disabled_or_hidden`, `orphan_no_config_entry`, `orphan_config_entry_not_loaded`, `live_no_config_entry`, `live_config_entry_not_loaded`, `orphan_device_mismatch`, `platform_mismatch`, `device_class_mismatch`, `unit_mismatch`, `references_found`.
+Reasons: `multiple_live_candidates`, `orphan_disabled_or_hidden`, `orphan_no_config_entry`, `orphan_config_entry_not_loaded`, `live_no_config_entry`, `live_config_entry_not_loaded`, `orphan_device_mismatch`, `platform_mismatch`, `device_class_mismatch`, `unit_mismatch`, `references_found`, `config_entry_mismatch` (v1.1).
 
 Reference types: `a` automations/scripts/scenes, `b` dashboards, `c` config entries, `d` YAML file + line, `e` entity registry. If a source cannot be scanned it is reported as `scan_error:…` and the case is skipped (safety first).
 
 ## Known limits
 
-- Only `X_N` with no `X` in the registry is not handled.
+- `X_N` with no `X` in the registry is handled only when `X` is still among the deleted entries and the option is on.
 - A re-pairing that creates a new device is skipped (`orphan_device_mismatch`).
 - External systems (AppDaemon, Node-RED, REST, ESPHome YAML, voice triggers) and files outside the config dir are not scanned.
 - Long-term statistics are not merged: those of `X_N` may stay orphaned (*Developer tools → Statistics*). Flagged as `statistics_may_be_orphaned`.

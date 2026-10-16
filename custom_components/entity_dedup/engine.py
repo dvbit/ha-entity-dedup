@@ -19,11 +19,14 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE, EntityCategory
 from homeassistant.core import HomeAssistant, State, split_entity_id
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.typing import UNDEFINED
 
 from .const import (
     ATTR_RESTORED,
+    CASE_TYPE_MISSING_BASE,
     CONF_DENYLIST_DOMAINS,
     CONF_DENYLIST_ENTITIES,
+    CONF_HANDLE_MISSING_BASE,
     CONF_LOG_MAX_ENTRIES,
     CONF_MAX_CORRECTIONS,
     EXPOSE_KEY,
@@ -35,6 +38,7 @@ from .const import (
     OUTCOME_SKIPPED,
     OUTCOME_THRESHOLD_EXCEEDED,
     OUTCOME_WOULD_FIX,
+    REASON_CONFIG_ENTRY_MISMATCH,
     REASON_DEVICE_CLASS_MISMATCH,
     REASON_DEVICE_MISMATCH,
     REASON_LIVE_ENTRY_NOT_LOADED,
@@ -101,25 +105,42 @@ def is_candidate(hass: HomeAssistant, entry: er.RegistryEntry) -> bool:
 # ======================================================================
 @dataclass
 class Case:
-    """One deduplication case (§5.1)."""
+    """One deduplication case (§5.1, §5.8).
 
-    base: er.RegistryEntry  # X
+    Standard case: ``base`` is the registry entry X (orphan or user-disabled).
+    Missing-base case (§5.8): X is not in the registry, ``base`` is None and
+    ``deleted`` is the deleted registry entry that held X.
+    """
+
+    base_id: str  # X entity_id
     live: er.RegistryEntry  # X_N
+    base: er.RegistryEntry | None = None
+    deleted: er.DeletedRegistryEntry | None = None
     extras: list[er.RegistryEntry] = field(default_factory=list)  # orphan X_M
     reason: str | None = None
     references: list[Reference] = field(default_factory=list)
 
     @property
+    def missing_base(self) -> bool:
+        """True for the §5.8 case (X absent from the registry)."""
+        return self.base is None
+
+    @property
     def orphans(self) -> list[er.RegistryEntry]:
-        """X first, then the extra orphans: the entries that get deleted."""
-        return [self.base, *self.extras]
+        """Registry entries deleted by the case: X (if present), then extras."""
+        return [self.base, *self.extras] if self.base is not None else list(self.extras)
+
+    def extra_details(self) -> dict[str, Any]:
+        """Details common to every row of the case (§5.8 case_type)."""
+        return {"case_type": CASE_TYPE_MISSING_BASE} if self.missing_base else {}
 
     def summary(self) -> dict[str, Any]:
         """Compact description used in threshold rows and service responses."""
         return {
-            "base_entity_id": self.base.entity_id,
+            "base_entity_id": self.base_id,
             "live_entity_id": self.live.entity_id,
             "extra_orphans": [e.entity_id for e in self.extras],
+            **self.extra_details(),
         }
 
 
@@ -228,12 +249,41 @@ def live_snapshot(entry: er.RegistryEntry) -> dict[str, Any]:
     }
 
 
-def _exposure(entry: er.RegistryEntry) -> dict[str, bool]:
+def _exposure(entry: er.RegistryEntry | er.DeletedRegistryEntry) -> dict[str, bool]:
     """``should_expose`` per assistant, as stored in registry options."""
+    options = entry.options if entry.options is not UNDEFINED else {}
     return {
-        a: entry.options[a][EXPOSE_KEY]
+        a: options[a][EXPOSE_KEY]
         for a in KNOWN_ASSISTANTS
-        if a in entry.options and EXPOSE_KEY in entry.options[a]
+        if a in options and EXPOSE_KEY in options[a]
+    }
+
+
+def _defined(value: Any) -> Any:
+    """UNDEFINED (older deleted entries) → None."""
+    return None if value is UNDEFINED else value
+
+
+def deleted_snapshot(entry: er.DeletedRegistryEntry) -> dict[str, Any]:
+    """Transferable fields of the deleted entry that held X (§5.8).
+
+    Same keys used by ``_transfer`` as ``entry_snapshot``. The deleted entry
+    itself is never modified, so it is not needed for the rollback.
+    """
+    return {
+        "id": entry.id,
+        "entity_id": entry.entity_id,
+        "unique_id": entry.unique_id,
+        "platform": entry.platform,
+        "config_entry_id": entry.config_entry_id,
+        "name": entry.name,
+        "icon": entry.icon,
+        "area_id": entry.area_id,
+        "labels": _plain(entry.labels),
+        "categories": dict(entry.categories),
+        "hidden_by": _plain(_defined(entry.hidden_by)),
+        "exposure": _exposure(entry),
+        "from_deleted_registry": True,
     }
 
 
@@ -260,6 +310,7 @@ class DedupEngine:
         registry = er.async_get(hass)
         deny_domains = set(options.get(CONF_DENYLIST_DOMAINS) or [])
         deny_entities = set(options.get(CONF_DENYLIST_ENTITIES) or [])
+        handle_missing = bool(options.get(CONF_HANDLE_MISSING_BASE))
 
         def denied(entity_id: str) -> bool:
             return entity_id in deny_entities or split_entity_id(entity_id)[0] in deny_domains
@@ -281,13 +332,19 @@ class DedupEngine:
         for base_id in sorted(lives_by_base):
             if only_base is not None and base_id != only_base:
                 continue
-            # 1. X must be in the registry.
-            if (base := registry.async_get(base_id)) is None:
-                continue
-            # 2. X must be a candidate (else e.g. legit "Lamp 2").
-            if not is_candidate(hass, base):
-                continue
             lives = sorted(lives_by_base[base_id], key=lambda e: e.entity_id)
+            deleted: er.DeletedRegistryEntry | None = None
+            # 1. X must be in the registry …
+            if (base := registry.async_get(base_id)) is None:
+                # … unless §5.8 applies: option on, X free in the state
+                # machine and held by a deleted entry of the same platform.
+                if not handle_missing or hass.states.get(base_id) is not None:
+                    continue
+                if (deleted := self._find_deleted(base_id, lives)) is None:
+                    continue
+            # 2. X must be a candidate (else e.g. legit "Lamp 2").
+            elif not is_candidate(hass, base):
+                continue
             # 3. Denylist excludes silently (X or any live of the group).
             if denied(base_id) or any(denied(e.entity_id) for e in lives):
                 _LOGGER.debug("Case %s excluded by denylist", base_id)
@@ -295,15 +352,44 @@ class DedupEngine:
             # 4. Count lives.
             live = lives[0]
             if len(lives) >= 2:
-                multi.append(Case(base=base, live=live, reason=REASON_MULTIPLE_LIVE))
+                multi.append(
+                    Case(
+                        base_id=base_id,
+                        live=live,
+                        base=base,
+                        deleted=deleted,
+                        reason=REASON_MULTIPLE_LIVE,
+                    )
+                )
                 continue
             extras = sorted(
                 (e for e in orphans_by_base.get(base_id, []) if e.entity_id != live.entity_id),
                 key=lambda e: e.entity_id,
             )
-            cases.append(Case(base=base, live=live, extras=extras))
+            cases.append(
+                Case(base_id=base_id, live=live, base=base, deleted=deleted, extras=extras)
+            )
         _LOGGER.debug("Detection: %d case(s), %d with multiple lives", len(cases), len(multi))
         return cases, multi
+
+    def _find_deleted(
+        self, base_id: str, lives: list[er.RegistryEntry]
+    ) -> er.DeletedRegistryEntry | None:
+        """Most recently deleted entry that held ``base_id`` (§5.8).
+
+        Same domain is implied by the entity_id; the platform must match one
+        of the live entities. Ties are broken by ``modified_at`` (deletion time).
+        """
+        platforms = {e.platform for e in lives}
+        matches = [
+            d
+            for d in er.async_get(self.hass).deleted_entities.values()
+            if d.entity_id == base_id and d.platform in platforms
+        ]
+        if not matches:
+            _LOGGER.debug("No deleted registry entry held %s", base_id)
+            return None
+        return max(matches, key=lambda d: d.modified_at)
 
     # ------------------------------------------------------------- §5.2
     def _entry_loaded(self, entry_id: str) -> bool:
@@ -312,6 +398,8 @@ class DedupEngine:
 
     def check_static(self, case: Case) -> str | None:
         """Run checks 1–9 of §5.2 in order; return the first failing reason."""
+        if case.missing_base:
+            return self.check_missing_base(case)
         live = case.live
         orphans = case.orphans
         user = (er.RegistryEntryDisabler.USER, er.RegistryEntryHider.USER)
@@ -353,6 +441,81 @@ class DedupEngine:
                 return reason
         return None
 
+    def check_missing_base(self, case: Case) -> str | None:
+        """Run the §5.8 checks for a case without X in the registry.
+
+        The deleted entry keeps no device, unit nor original device class:
+        device and unit checks are replaced by "same config entry". Extra
+        orphans, being full registry entries, get the standard checks.
+        """
+        live = case.live
+        deleted = case.deleted
+        assert deleted is not None
+        extras = case.extras
+        user = (er.RegistryEntryDisabler.USER, er.RegistryEntryHider.USER)
+
+        def eff_dc(e: er.RegistryEntry) -> str | None:
+            return e.device_class or e.original_device_class
+
+        checks: list[tuple[str, Any]] = [
+            # 1 deleted X and extras not disabled nor hidden by the user
+            (
+                REASON_ORPHAN_DISABLED_OR_HIDDEN,
+                lambda: (
+                    _defined(deleted.disabled_by) not in user
+                    and _defined(deleted.hidden_by) not in user
+                    and all(o.disabled_by not in user and o.hidden_by not in user for o in extras)
+                ),
+            ),
+            # 2 deleted X and extras have a config entry
+            (
+                REASON_ORPHAN_NO_CONFIG_ENTRY,
+                lambda: bool(deleted.config_entry_id) and all(o.config_entry_id for o in extras),
+            ),
+            # 3 their config entries are loaded
+            (
+                REASON_ORPHAN_ENTRY_NOT_LOADED,
+                lambda: (
+                    self._entry_loaded(deleted.config_entry_id)
+                    and all(self._entry_loaded(o.config_entry_id) for o in extras)
+                ),
+            ),
+            # 4–5 live config entry present and loaded
+            (REASON_LIVE_NO_CONFIG_ENTRY, lambda: bool(live.config_entry_id)),
+            (REASON_LIVE_ENTRY_NOT_LOADED, lambda: self._entry_loaded(live.config_entry_id)),
+            # 6 same config entry (replaces device/unit for the deleted X)
+            (
+                REASON_CONFIG_ENTRY_MISMATCH,
+                lambda: deleted.config_entry_id == live.config_entry_id,
+            ),
+            # standard device check, extras only
+            (REASON_DEVICE_MISMATCH, lambda: all(o.device_id == live.device_id for o in extras)),
+            # 7 platform (deleted X matches by construction)
+            (REASON_PLATFORM_MISMATCH, lambda: all(o.platform == live.platform for o in extras)),
+            # 8 device class: user override of the deleted X, if both set;
+            #   effective device class for extras
+            (
+                REASON_DEVICE_CLASS_MISMATCH,
+                lambda: (
+                    (
+                        deleted.device_class is None
+                        or live.device_class is None
+                        or deleted.device_class == live.device_class
+                    )
+                    and all(eff_dc(o) == eff_dc(live) for o in extras)
+                ),
+            ),
+            # 9 unit, extras only
+            (
+                REASON_UNIT_MISMATCH,
+                lambda: all(o.unit_of_measurement == live.unit_of_measurement for o in extras),
+            ),
+        ]
+        for reason, ok in checks:
+            if not ok():
+                return reason
+        return None
+
     # ------------------------------------------------------------- run
     async def async_run(
         self,
@@ -378,19 +541,21 @@ class DedupEngine:
         result.interrupted = self.store.unreported_interrupted()
 
         def row_for(case: Case, outcome: str, **kw: Any) -> LogRow:
+            details = case.extra_details() | kw.pop("details", {})
             return new_row(
                 run_id=result.run_id,
                 trigger=trigger,
                 dry_run=dry_run,
-                base_entity_id=case.base.entity_id,
+                base_entity_id=case.base_id,
                 live_entity_id=case.live.entity_id,
                 extra_orphans=[e.entity_id for e in case.extras],
                 outcome=outcome,
+                details=details,
                 **kw,
             )
 
         cases, multi = self.detect(options, only_base)
-        all_cases = sorted([*cases, *multi], key=lambda c: c.base.entity_id)
+        all_cases = sorted([*cases, *multi], key=lambda c: c.base_id)
 
         # Checks 1–9 first; YAML scan only for survivors (one executor pass).
         survivors: list[Case] = []
@@ -426,9 +591,7 @@ class DedupEngine:
             details: dict[str, Any] = {}
             if case.references:
                 details["references"] = case.references
-            _LOGGER.info(
-                "Skipped %s -> %s: %s", case.live.entity_id, case.base.entity_id, case.reason
-            )
+            _LOGGER.info("Skipped %s -> %s: %s", case.live.entity_id, case.base_id, case.reason)
             result.rows.append(
                 await self.store.async_append(
                     row_for(case, OUTCOME_SKIPPED, reason=case.reason, details=details),
@@ -466,7 +629,7 @@ class DedupEngine:
         # §5.7 dry run / §5.5 execution
         for case in eligible:
             if dry_run:
-                _LOGGER.info("Would fix %s -> %s", case.live.entity_id, case.base.entity_id)
+                _LOGGER.info("Would fix %s -> %s", case.live.entity_id, case.base_id)
                 result.rows.append(
                     await self.store.async_append(row_for(case, OUTCOME_WOULD_FIX), max_entries)
                 )
@@ -497,12 +660,18 @@ class DedupEngine:
         """Execute one case with snapshot and rollback (§5.5, §5.6)."""
         hass = self.hass
         registry = er.async_get(hass)
-        base_id = case.base.entity_id
+        base_id = case.base_id
         live_id = case.live.entity_id
 
-        # Step 1: snapshot persisted BEFORE any change.
+        # Step 1: snapshot persisted BEFORE any change. "base" is the source
+        # of the transfer: the X entry, or the deleted entry in §5.8.
+        deleted_snaps = [entry_snapshot(hass, o) for o in case.orphans]
         snapshot = {
-            "deleted": [entry_snapshot(hass, o) for o in case.orphans],
+            "base_entity_id": base_id,
+            "base": (
+                deleted_snaps[0] if case.base is not None else deleted_snapshot(case.deleted)  # type: ignore[arg-type]
+            ),
+            "deleted": deleted_snaps,
             "live": live_snapshot(case.live),
         }
         row["snapshot"] = snapshot
@@ -536,7 +705,7 @@ class DedupEngine:
             progress["renamed"] = True
             _LOGGER.debug("Renamed %s -> %s", live_id, base_id)
             # Step 5: transfer customisations from X (not from extras).
-            self._transfer(snapshot["deleted"][0], base_id)
+            self._transfer(snapshot["base"], base_id)
         except Exception as err:  # noqa: BLE001 - any failure triggers rollback
             _LOGGER.error("Case %s failed (%s), rolling back", base_id, err)
             details["error"] = str(err)
@@ -645,7 +814,8 @@ class DedupEngine:
         registry = er.async_get(hass)
         live_snap = snapshot["live"]
         live_orig = live_snap["entity_id"]
-        base_id = snapshot["deleted"][0]["entity_id"]
+        # "base_entity_id" exists since v1.1; older snapshots had X first.
+        base_id = snapshot.get("base_entity_id") or snapshot["deleted"][0]["entity_id"]
 
         # 1) Live entity back to X_N with its original fields.
         current = base_id if progress["renamed"] else live_orig

@@ -20,6 +20,7 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback, valid_entity_id
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -34,6 +35,7 @@ from .const import (
     CONF_DELAY_MINUTES,
     CONF_DENYLIST_DOMAINS,
     CONF_DENYLIST_ENTITIES,
+    CONF_HANDLE_MISSING_BASE,
     CONF_LOG_MAX_ENTRIES,
     CONF_MAX_CORRECTIONS,
     DEFAULT_OPTIONS,
@@ -96,6 +98,8 @@ class EntityDedupOptionsFlow(OptionsFlow):
                     CONF_LOG_MAX_ENTRIES: int(user_input[CONF_LOG_MAX_ENTRIES]),
                     CONF_DENYLIST_DOMAINS: sorted(set(domains)),
                     CONF_DENYLIST_ENTITIES: sorted(set(entities)),
+                    # §5.8 (v1.1), default off.
+                    CONF_HANDLE_MISSING_BASE: bool(user_input.get(CONF_HANDLE_MISSING_BASE, False)),
                 }
                 _LOGGER.info("Options updated: %s", options)
                 return self.async_create_entry(data=options)
@@ -119,6 +123,7 @@ class EntityDedupOptionsFlow(OptionsFlow):
                 probatio.Optional(CONF_DENYLIST_ENTITIES): EntitySelector(
                     EntitySelectorConfig(multiple=True)
                 ),
+                probatio.Optional(CONF_HANDLE_MISSING_BASE, default=False): BooleanSelector(),
             }
         )
         return self.async_show_form(

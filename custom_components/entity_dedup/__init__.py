@@ -1,6 +1,6 @@
 """Entity Dedup: fix ``_N`` duplicate entities after a restart.
 
-Implements docs/specification-v1.0.md. Section references are "§n".
+Implements docs/specification-v1.1.md. Section references are "§n".
 
 Lifecycle (§4):
   * loaded during HA boot  → wait for ``homeassistant_started``, then

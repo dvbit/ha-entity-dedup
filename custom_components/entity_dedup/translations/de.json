@@ -20,14 +20,16 @@
           "max_corrections": "Maximale Korrekturen pro Lauf",
           "log_max_entries": "Aufbewahrte Protokollzeilen",
           "denylist_domains": "Ausgeschlossene Domänen",
-          "denylist_entities": "Ausgeschlossene Entitäten"
+          "denylist_entities": "Ausgeschlossene Entitäten",
+          "handle_missing_base": "Duplikate mit gelöschtem Original korrigieren"
         },
         "data_description": {
           "delay_minutes": "Wartezeit nach dem Start von Home Assistant vor dem automatischen Lauf (1–120).",
           "max_corrections": "Sind mehr Fälle geeignet, wird nichts korrigiert und du wirst benachrichtigt (1–100). Einmalig mit run_now ignore_limit übergehbar.",
           "log_max_entries": "Ältere Zeilen werden nach jedem Schreibvorgang entfernt (50–5000).",
           "denylist_domains": "Fälle mit Entitäten dieser Domänen werden stillschweigend ignoriert.",
-          "denylist_entities": "Fälle mit diesen Entitäten (Basis oder `_N`) werden stillschweigend ignoriert, auch von run_now."
+          "denylist_entities": "Fälle mit diesen Entitäten (Basis oder `_N`) werden stillschweigend ignoriert, auch von run_now.",
+          "handle_missing_base": "Behandelt auch `X_N`, wenn `X` nicht mehr in der Registry ist, Home Assistant sie aber noch unter den gelöschten Entitäten derselben Integration (gleicher Konfigurationseintrag) kennt. Standardmäßig aus."
         }
       }
     },
@@ -36,59 +38,10 @@
       "invalid_entity_id": "Ungültige entity_id."
     }
   },
-  "entity": {
-    "sensor": {
-      "last_run": {
-        "name": "Letzter Lauf"
-      },
-      "last_fixed": {
-        "name": "Korrigiert im letzten Lauf"
-      },
-      "last_skipped": {
-        "name": "Nicht korrigiert im letzten Lauf"
-      }
-    },
-    "switch": {
-      "enabled": {
-        "name": "Automatischer Lauf nach Neustart"
-      }
-    }
-  },
-  "services": {
-    "run_now": {
-      "name": "Jetzt ausführen",
-      "description": "Erkennt und korrigiert jetzt `_N`-Duplikate. Funktioniert auch bei ausgeschaltetem automatischem Lauf.",
-      "fields": {
-        "dry_run": {
-          "name": "Probelauf",
-          "description": "Nur erkennen, protokollieren und benachrichtigen; die Registry wird nicht geändert."
-        },
-        "ignore_limit": {
-          "name": "Limit ignorieren",
-          "description": "Die maximale Anzahl an Korrekturen nur für diesen Lauf ignorieren."
-        },
-        "entity_id": {
-          "name": "Basis-Entität",
-          "description": "Den Lauf auf diese Basis-entity_id (ohne `_N`) beschränken, wörtlich genommen."
-        }
-      }
-    },
-    "get_log": {
-      "name": "Protokoll abrufen",
-      "description": "Gibt die Zeilen des dauerhaften Protokolls zurück, neueste zuerst.",
-      "fields": {
-        "limit": {
-          "name": "Limit",
-          "description": "Maximale Anzahl an Zeilen (1–500)."
-        },
-        "since": {
-          "name": "Seit",
-          "description": "Nur Zeilen, die nach diesem Zeitpunkt geschrieben wurden."
-        }
-      }
-    }
-  },
   "exceptions": {
+    "notify_missing_base": {
+      "message": "Original gelöscht"
+    },
     "already_running": {
       "message": "Ein Lauf ist bereits aktiv, versuche es später erneut."
     },
@@ -142,6 +95,58 @@
     },
     "notify_outcome_error_rollback_failed": {
       "message": "Fehler, ROLLBACK FEHLGESCHLAGEN"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Letzter Lauf"
+      },
+      "last_fixed": {
+        "name": "Korrigiert im letzten Lauf"
+      },
+      "last_skipped": {
+        "name": "Nicht korrigiert im letzten Lauf"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Automatischer Lauf nach Neustart"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Jetzt ausführen",
+      "description": "Erkennt und korrigiert jetzt `_N`-Duplikate. Funktioniert auch bei ausgeschaltetem automatischem Lauf.",
+      "fields": {
+        "dry_run": {
+          "name": "Probelauf",
+          "description": "Nur erkennen, protokollieren und benachrichtigen; die Registry wird nicht geändert."
+        },
+        "ignore_limit": {
+          "name": "Limit ignorieren",
+          "description": "Die maximale Anzahl an Korrekturen nur für diesen Lauf ignorieren."
+        },
+        "entity_id": {
+          "name": "Basis-Entität",
+          "description": "Den Lauf auf diese Basis-entity_id (ohne `_N`) beschränken, wörtlich genommen."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Protokoll abrufen",
+      "description": "Gibt die Zeilen des dauerhaften Protokolls zurück, neueste zuerst.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Maximale Anzahl an Zeilen (1–500)."
+        },
+        "since": {
+          "name": "Seit",
+          "description": "Nur Zeilen, die nach diesem Zeitpunkt geschrieben wurden."
+        }
+      }
     }
   }
 }

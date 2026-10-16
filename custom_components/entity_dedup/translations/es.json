@@ -20,14 +20,16 @@
           "max_corrections": "Correcciones máximas por ejecución",
           "log_max_entries": "Filas de registro conservadas",
           "denylist_domains": "Dominios excluidos",
-          "denylist_entities": "Entidades excluidas"
+          "denylist_entities": "Entidades excluidas",
+          "handle_missing_base": "Corregir duplicados cuyo original fue eliminado"
         },
         "data_description": {
           "delay_minutes": "Espera tras el arranque de Home Assistant antes de la ejecución automática (1–120).",
           "max_corrections": "Si hay más casos aptos, no se corrige nada y recibes una notificación (1–100). Se puede omitir una vez con run_now ignore_limit.",
           "log_max_entries": "Las filas más antiguas se eliminan tras cada escritura (50–5000).",
           "denylist_domains": "Los casos con entidades de estos dominios se ignoran en silencio.",
-          "denylist_entities": "Los casos con estas entidades (base o `_N`) se ignoran en silencio, también en run_now."
+          "denylist_entities": "Los casos con estas entidades (base o `_N`) se ignoran en silencio, también en run_now.",
+          "handle_missing_base": "También gestiona `X_N` cuando `X` ya no está en el registro pero Home Assistant la recuerda entre las entidades eliminadas de la misma integración (misma entrada de configuración). Desactivado por defecto."
         }
       }
     },
@@ -36,59 +38,10 @@
       "invalid_entity_id": "entity_id no válido."
     }
   },
-  "entity": {
-    "sensor": {
-      "last_run": {
-        "name": "Última ejecución"
-      },
-      "last_fixed": {
-        "name": "Corregidas en la última ejecución"
-      },
-      "last_skipped": {
-        "name": "No corregidas en la última ejecución"
-      }
-    },
-    "switch": {
-      "enabled": {
-        "name": "Ejecución automática tras el reinicio"
-      }
-    }
-  },
-  "services": {
-    "run_now": {
-      "name": "Ejecutar ahora",
-      "description": "Detecta y corrige ahora las entidades duplicadas `_N`. Funciona incluso con la ejecución automática desactivada.",
-      "fields": {
-        "dry_run": {
-          "name": "Simulación",
-          "description": "Solo detectar, registrar y notificar; el registro no se modifica."
-        },
-        "ignore_limit": {
-          "name": "Ignorar límite",
-          "description": "Ignorar el número máximo de correcciones solo en esta ejecución."
-        },
-        "entity_id": {
-          "name": "Entidad base",
-          "description": "Limitar la ejecución a este entity_id base (sin `_N`), tomado literalmente."
-        }
-      }
-    },
-    "get_log": {
-      "name": "Leer registro",
-      "description": "Devuelve las filas del registro persistente, de la más reciente a la más antigua.",
-      "fields": {
-        "limit": {
-          "name": "Límite",
-          "description": "Número máximo de filas (1–500)."
-        },
-        "since": {
-          "name": "Desde",
-          "description": "Solo filas escritas después de este momento."
-        }
-      }
-    }
-  },
   "exceptions": {
+    "notify_missing_base": {
+      "message": "original eliminado"
+    },
     "already_running": {
       "message": "Ya hay una ejecución en curso, inténtalo más tarde."
     },
@@ -142,6 +95,58 @@
     },
     "notify_outcome_error_rollback_failed": {
       "message": "error, REVERSIÓN FALLIDA"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Última ejecución"
+      },
+      "last_fixed": {
+        "name": "Corregidas en la última ejecución"
+      },
+      "last_skipped": {
+        "name": "No corregidas en la última ejecución"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Ejecución automática tras el reinicio"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Ejecutar ahora",
+      "description": "Detecta y corrige ahora las entidades duplicadas `_N`. Funciona incluso con la ejecución automática desactivada.",
+      "fields": {
+        "dry_run": {
+          "name": "Simulación",
+          "description": "Solo detectar, registrar y notificar; el registro no se modifica."
+        },
+        "ignore_limit": {
+          "name": "Ignorar límite",
+          "description": "Ignorar el número máximo de correcciones solo en esta ejecución."
+        },
+        "entity_id": {
+          "name": "Entidad base",
+          "description": "Limitar la ejecución a este entity_id base (sin `_N`), tomado literalmente."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Leer registro",
+      "description": "Devuelve las filas del registro persistente, de la más reciente a la más antigua.",
+      "fields": {
+        "limit": {
+          "name": "Límite",
+          "description": "Número máximo de filas (1–500)."
+        },
+        "since": {
+          "name": "Desde",
+          "description": "Solo filas escritas después de este momento."
+        }
+      }
     }
   }
 }

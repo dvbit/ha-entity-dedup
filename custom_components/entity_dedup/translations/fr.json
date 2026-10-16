@@ -20,14 +20,16 @@
           "max_corrections": "Corrections maximales par exécution",
           "log_max_entries": "Lignes de journal conservées",
           "denylist_domains": "Domaines exclus",
-          "denylist_entities": "Entités exclues"
+          "denylist_entities": "Entités exclues",
+          "handle_missing_base": "Corriger les doublons dont l'original a été supprimé"
         },
         "data_description": {
           "delay_minutes": "Attente après le démarrage de Home Assistant avant l'exécution automatique (1–120).",
           "max_corrections": "Si davantage de cas sont éligibles, rien n'est corrigé et vous êtes notifié (1–100). Contournable une fois avec run_now ignore_limit.",
           "log_max_entries": "Les lignes les plus anciennes sont supprimées après chaque écriture (50–5000).",
           "denylist_domains": "Les cas dont les entités appartiennent à ces domaines sont ignorés silencieusement.",
-          "denylist_entities": "Les cas impliquant ces entités (base ou `_N`) sont ignorés silencieusement, y compris par run_now."
+          "denylist_entities": "Les cas impliquant ces entités (base ou `_N`) sont ignorés silencieusement, y compris par run_now.",
+          "handle_missing_base": "Traite aussi `X_N` lorsque `X` n'est plus dans le registre mais que Home Assistant s'en souvient parmi les entités supprimées de la même intégration (même entrée de configuration). Désactivé par défaut."
         }
       }
     },
@@ -36,59 +38,10 @@
       "invalid_entity_id": "entity_id invalide."
     }
   },
-  "entity": {
-    "sensor": {
-      "last_run": {
-        "name": "Dernière exécution"
-      },
-      "last_fixed": {
-        "name": "Corrigées à la dernière exécution"
-      },
-      "last_skipped": {
-        "name": "Non corrigées à la dernière exécution"
-      }
-    },
-    "switch": {
-      "enabled": {
-        "name": "Exécution automatique après redémarrage"
-      }
-    }
-  },
-  "services": {
-    "run_now": {
-      "name": "Exécuter maintenant",
-      "description": "Détecte et corrige maintenant les entités dupliquées `_N`. Fonctionne même avec l'exécution automatique désactivée.",
-      "fields": {
-        "dry_run": {
-          "name": "Simulation",
-          "description": "Détecter, journaliser et notifier uniquement ; le registre n'est pas modifié."
-        },
-        "ignore_limit": {
-          "name": "Ignorer la limite",
-          "description": "Ignorer le nombre maximal de corrections pour cette exécution uniquement."
-        },
-        "entity_id": {
-          "name": "Entité de base",
-          "description": "Limiter l'exécution à cet entity_id de base (sans `_N`), pris tel quel."
-        }
-      }
-    },
-    "get_log": {
-      "name": "Lire le journal",
-      "description": "Renvoie les lignes du journal persistant, des plus récentes aux plus anciennes.",
-      "fields": {
-        "limit": {
-          "name": "Limite",
-          "description": "Nombre maximal de lignes (1–500)."
-        },
-        "since": {
-          "name": "Depuis",
-          "description": "Uniquement les lignes écrites après cet instant."
-        }
-      }
-    }
-  },
   "exceptions": {
+    "notify_missing_base": {
+      "message": "original supprimé"
+    },
     "already_running": {
       "message": "Une exécution est déjà en cours, réessayez plus tard."
     },
@@ -142,6 +95,58 @@
     },
     "notify_outcome_error_rollback_failed": {
       "message": "erreur, RESTAURATION ÉCHOUÉE"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Dernière exécution"
+      },
+      "last_fixed": {
+        "name": "Corrigées à la dernière exécution"
+      },
+      "last_skipped": {
+        "name": "Non corrigées à la dernière exécution"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Exécution automatique après redémarrage"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Exécuter maintenant",
+      "description": "Détecte et corrige maintenant les entités dupliquées `_N`. Fonctionne même avec l'exécution automatique désactivée.",
+      "fields": {
+        "dry_run": {
+          "name": "Simulation",
+          "description": "Détecter, journaliser et notifier uniquement ; le registre n'est pas modifié."
+        },
+        "ignore_limit": {
+          "name": "Ignorer la limite",
+          "description": "Ignorer le nombre maximal de corrections pour cette exécution uniquement."
+        },
+        "entity_id": {
+          "name": "Entité de base",
+          "description": "Limiter l'exécution à cet entity_id de base (sans `_N`), pris tel quel."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Lire le journal",
+      "description": "Renvoie les lignes du journal persistant, des plus récentes aux plus anciennes.",
+      "fields": {
+        "limit": {
+          "name": "Limite",
+          "description": "Nombre maximal de lignes (1–500)."
+        },
+        "since": {
+          "name": "Depuis",
+          "description": "Uniquement les lignes écrites après cet instant."
+        }
+      }
     }
   }
 }

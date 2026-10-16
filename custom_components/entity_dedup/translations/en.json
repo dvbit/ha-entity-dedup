@@ -20,14 +20,16 @@
           "max_corrections": "Maximum corrections per run",
           "log_max_entries": "Log rows kept",
           "denylist_domains": "Excluded domains",
-          "denylist_entities": "Excluded entities"
+          "denylist_entities": "Excluded entities",
+          "handle_missing_base": "Fix duplicates whose original was deleted"
         },
         "data_description": {
           "delay_minutes": "Wait after Home Assistant has started before the automatic run (1–120).",
           "max_corrections": "If more cases are eligible, nothing is corrected and you are notified (1–100). Override once with run_now ignore_limit.",
           "log_max_entries": "Older rows are dropped after each write (50–5000).",
           "denylist_domains": "Cases whose entities belong to these domains are ignored silently.",
-          "denylist_entities": "Cases involving these entities (base or `_N`) are ignored silently, also by run_now."
+          "denylist_entities": "Cases involving these entities (base or `_N`) are ignored silently, also by run_now.",
+          "handle_missing_base": "Also handle `X_N` when `X` is no longer in the registry but Home Assistant still remembers it among deleted entities of the same integration (same config entry). Off by default."
         }
       }
     },
@@ -36,59 +38,10 @@
       "invalid_entity_id": "Invalid entity_id."
     }
   },
-  "entity": {
-    "sensor": {
-      "last_run": {
-        "name": "Last run"
-      },
-      "last_fixed": {
-        "name": "Last run fixed"
-      },
-      "last_skipped": {
-        "name": "Last run not fixed"
-      }
-    },
-    "switch": {
-      "enabled": {
-        "name": "Automatic run after restart"
-      }
-    }
-  },
-  "services": {
-    "run_now": {
-      "name": "Run now",
-      "description": "Detects and fixes `_N` duplicate entities now. Works even with the automatic run switched off.",
-      "fields": {
-        "dry_run": {
-          "name": "Dry run",
-          "description": "Only detect, log and notify; the registry is not changed."
-        },
-        "ignore_limit": {
-          "name": "Ignore limit",
-          "description": "Ignore the maximum number of corrections for this run only."
-        },
-        "entity_id": {
-          "name": "Base entity",
-          "description": "Limit the run to this base entity_id (without `_N`), taken literally."
-        }
-      }
-    },
-    "get_log": {
-      "name": "Get log",
-      "description": "Returns the persistent log rows, newest first.",
-      "fields": {
-        "limit": {
-          "name": "Limit",
-          "description": "Maximum number of rows (1–500)."
-        },
-        "since": {
-          "name": "Since",
-          "description": "Only rows written after this moment."
-        }
-      }
-    }
-  },
   "exceptions": {
+    "notify_missing_base": {
+      "message": "original deleted"
+    },
     "already_running": {
       "message": "A run is already in progress, try again later."
     },
@@ -142,6 +95,58 @@
     },
     "notify_outcome_error_rollback_failed": {
       "message": "error, ROLLBACK FAILED"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Last run"
+      },
+      "last_fixed": {
+        "name": "Last run fixed"
+      },
+      "last_skipped": {
+        "name": "Last run not fixed"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Automatic run after restart"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Run now",
+      "description": "Detects and fixes `_N` duplicate entities now. Works even with the automatic run switched off.",
+      "fields": {
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Only detect, log and notify; the registry is not changed."
+        },
+        "ignore_limit": {
+          "name": "Ignore limit",
+          "description": "Ignore the maximum number of corrections for this run only."
+        },
+        "entity_id": {
+          "name": "Base entity",
+          "description": "Limit the run to this base entity_id (without `_N`), taken literally."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Get log",
+      "description": "Returns the persistent log rows, newest first.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Maximum number of rows (1–500)."
+        },
+        "since": {
+          "name": "Since",
+          "description": "Only rows written after this moment."
+        }
+      }
     }
   }
 }

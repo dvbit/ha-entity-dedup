@@ -116,6 +116,27 @@ T = {
         "de": "Fälle mit diesen Entitäten (Basis oder `_N`) werden stillschweigend ignoriert, auch von run_now.",
         "es": "Los casos con estas entidades (base o `_N`) se ignoran en silencio, también en run_now.",
     },
+    "options.step.init.data.handle_missing_base": {
+        "en": "Fix duplicates whose original was deleted",
+        "it": "Correggi i duplicati con originale eliminato",
+        "fr": "Corriger les doublons dont l'original a été supprimé",
+        "de": "Duplikate mit gelöschtem Original korrigieren",
+        "es": "Corregir duplicados cuyo original fue eliminado",
+    },
+    "options.step.init.data_description.handle_missing_base": {
+        "en": "Also handle `X_N` when `X` is no longer in the registry but Home Assistant still remembers it among deleted entities of the same integration (same config entry). Off by default.",
+        "it": "Gestisce anche `X_N` quando `X` non è più nel registro ma Home Assistant la ricorda tra le entità eliminate della stessa integrazione (stessa config entry). Spenta per default.",
+        "fr": "Traite aussi `X_N` lorsque `X` n'est plus dans le registre mais que Home Assistant s'en souvient parmi les entités supprimées de la même intégration (même entrée de configuration). Désactivé par défaut.",
+        "de": "Behandelt auch `X_N`, wenn `X` nicht mehr in der Registry ist, Home Assistant sie aber noch unter den gelöschten Entitäten derselben Integration (gleicher Konfigurationseintrag) kennt. Standardmäßig aus.",
+        "es": "También gestiona `X_N` cuando `X` ya no está en el registro pero Home Assistant la recuerda entre las entidades eliminadas de la misma integración (misma entrada de configuración). Desactivado por defecto.",
+    },
+    "exceptions.notify_missing_base.message": {
+        "en": "original deleted",
+        "it": "originale eliminato",
+        "fr": "original supprimé",
+        "de": "Original gelöscht",
+        "es": "original eliminado",
+    },
     "options.error.invalid_domain": {
         "en": "Invalid domain name (lowercase letters, digits, underscore).",
         "it": "Nome di dominio non valido (minuscole, cifre, underscore).",
