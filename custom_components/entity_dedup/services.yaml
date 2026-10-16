@@ -1,0 +1,28 @@
+# §7 Services of Entity Dedup.
+run_now:
+  fields:
+    dry_run:
+      default: false
+      selector:
+        boolean:
+    ignore_limit:
+      default: false
+      selector:
+        boolean:
+    entity_id:
+      example: "sensor.kitchen_temperature"
+      selector:
+        text:
+
+get_log:
+  fields:
+    limit:
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 500
+          mode: box
+    since:
+      selector:
+        datetime:

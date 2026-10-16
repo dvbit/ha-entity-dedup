@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Entity Dedup",
+        "description": "After every restart, finds `_N` duplicate entities created because the original entity_id was still held by an orphan registry entry, removes the orphan and renames the live entity back. Default options are applied; change them later from Configure."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Already configured. Only a single configuration is possible."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Entity Dedup options",
+        "description": "Changes apply from the next run; nothing is reloaded or executed now.",
+        "data": {
+          "delay_minutes": "Delay after startup (minutes)",
+          "max_corrections": "Maximum corrections per run",
+          "log_max_entries": "Log rows kept",
+          "denylist_domains": "Excluded domains",
+          "denylist_entities": "Excluded entities"
+        },
+        "data_description": {
+          "delay_minutes": "Wait after Home Assistant has started before the automatic run (1–120).",
+          "max_corrections": "If more cases are eligible, nothing is corrected and you are notified (1–100). Override once with run_now ignore_limit.",
+          "log_max_entries": "Older rows are dropped after each write (50–5000).",
+          "denylist_domains": "Cases whose entities belong to these domains are ignored silently.",
+          "denylist_entities": "Cases involving these entities (base or `_N`) are ignored silently, also by run_now."
+        }
+      }
+    },
+    "error": {
+      "invalid_domain": "Invalid domain name (lowercase letters, digits, underscore).",
+      "invalid_entity_id": "Invalid entity_id."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Last run"
+      },
+      "last_fixed": {
+        "name": "Last run fixed"
+      },
+      "last_skipped": {
+        "name": "Last run not fixed"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Automatic run after restart"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Run now",
+      "description": "Detects and fixes `_N` duplicate entities now. Works even with the automatic run switched off.",
+      "fields": {
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Only detect, log and notify; the registry is not changed."
+        },
+        "ignore_limit": {
+          "name": "Ignore limit",
+          "description": "Ignore the maximum number of corrections for this run only."
+        },
+        "entity_id": {
+          "name": "Base entity",
+          "description": "Limit the run to this base entity_id (without `_N`), taken literally."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Get log",
+      "description": "Returns the persistent log rows, newest first.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Maximum number of rows (1–500)."
+        },
+        "since": {
+          "name": "Since",
+          "description": "Only rows written after this moment."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "already_running": {
+      "message": "A run is already in progress, try again later."
+    },
+    "not_loaded": {
+      "message": "Entity Dedup is not loaded."
+    },
+    "notify_title": {
+      "message": "Entity Dedup report"
+    },
+    "notify_title_dry_run": {
+      "message": "Entity Dedup report (simulation)"
+    },
+    "notify_summary": {
+      "message": "Fixed: {fixed} · Skipped: {skipped} · Would fix: {would_fix} · Errors: {errors}"
+    },
+    "notify_threshold": {
+      "message": "Limit exceeded: {count} eligible cases > {max}. Nothing corrected; use run_now with ignore_limit to proceed."
+    },
+    "notify_extra_orphans": {
+      "message": "extra orphans: {extras}"
+    },
+    "notify_more_references": {
+      "message": "… and {count} more references"
+    },
+    "notify_statistics": {
+      "message": "long-term statistics of {live} may remain orphaned (Developer tools → Statistics)"
+    },
+    "notify_error": {
+      "message": "error: {error}"
+    },
+    "notify_aborted": {
+      "message": "Run stopped: a rollback failed. The snapshot is kept in the log, check the registry manually."
+    },
+    "notify_interrupted_header": {
+      "message": "Interrupted cases (Home Assistant stopped during a correction; snapshot kept in the log, no automatic restore):"
+    },
+    "notify_footer": {
+      "message": "Full details: action `entity_dedup.get_log`."
+    },
+    "notify_outcome_fixed": {
+      "message": "fixed"
+    },
+    "notify_outcome_skipped": {
+      "message": "skipped"
+    },
+    "notify_outcome_would_fix": {
+      "message": "would be fixed"
+    },
+    "notify_outcome_error_rollback": {
+      "message": "error, rolled back"
+    },
+    "notify_outcome_error_rollback_failed": {
+      "message": "error, ROLLBACK FAILED"
+    }
+  }
+}

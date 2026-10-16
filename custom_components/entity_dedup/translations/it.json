@@ -1,0 +1,147 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Entity Dedup",
+        "description": "Dopo ogni riavvio individua le entità duplicate `_N` create perché l'entity_id originale era ancora occupato da una voce orfana del registro, elimina l'orfana e rinomina l'entità viva. Vengono applicate le opzioni predefinite, modificabili poi da Configura."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Già configurato. È possibile una sola configurazione."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Entity Dedup",
+        "description": "Le modifiche valgono dalla prossima esecuzione; nulla viene ricaricato o eseguito ora.",
+        "data": {
+          "delay_minutes": "Ritardo dopo l'avvio (minuti)",
+          "max_corrections": "Correzioni massime per esecuzione",
+          "log_max_entries": "Righe di log conservate",
+          "denylist_domains": "Domini esclusi",
+          "denylist_entities": "Entità escluse"
+        },
+        "data_description": {
+          "delay_minutes": "Attesa dopo l'avvio di Home Assistant prima dell'esecuzione automatica (1–120).",
+          "max_corrections": "Se i casi idonei sono di più, non si corregge nulla e ricevi una notifica (1–100). Superabile una volta con run_now ignore_limit.",
+          "log_max_entries": "Le righe più vecchie vengono eliminate dopo ogni scrittura (50–5000).",
+          "denylist_domains": "I casi con entità di questi domini vengono ignorati in silenzio.",
+          "denylist_entities": "I casi che coinvolgono queste entità (base o `_N`) vengono ignorati in silenzio, anche da run_now."
+        }
+      }
+    },
+    "error": {
+      "invalid_domain": "Nome di dominio non valido (minuscole, cifre, underscore).",
+      "invalid_entity_id": "entity_id non valido."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_run": {
+        "name": "Ultima esecuzione"
+      },
+      "last_fixed": {
+        "name": "Corrette nell'ultima esecuzione"
+      },
+      "last_skipped": {
+        "name": "Non corrette nell'ultima esecuzione"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Esecuzione automatica dopo il riavvio"
+      }
+    }
+  },
+  "services": {
+    "run_now": {
+      "name": "Esegui ora",
+      "description": "Rileva e corregge ora le entità duplicate `_N`. Funziona anche con l'esecuzione automatica spenta.",
+      "fields": {
+        "dry_run": {
+          "name": "Simulazione",
+          "description": "Solo rilevazione, log e notifica; il registro non viene modificato."
+        },
+        "ignore_limit": {
+          "name": "Ignora limite",
+          "description": "Ignora il numero massimo di correzioni solo per questa esecuzione."
+        },
+        "entity_id": {
+          "name": "Entità base",
+          "description": "Limita l'esecuzione a questo entity_id base (senza `_N`), preso alla lettera."
+        }
+      }
+    },
+    "get_log": {
+      "name": "Leggi log",
+      "description": "Restituisce le righe del log persistente, dalla più recente.",
+      "fields": {
+        "limit": {
+          "name": "Limite",
+          "description": "Numero massimo di righe (1–500)."
+        },
+        "since": {
+          "name": "Da",
+          "description": "Solo righe scritte dopo questo istante."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "already_running": {
+      "message": "Un'esecuzione è già in corso, riprova più tardi."
+    },
+    "not_loaded": {
+      "message": "Entity Dedup non è caricato."
+    },
+    "notify_title": {
+      "message": "Report Entity Dedup"
+    },
+    "notify_title_dry_run": {
+      "message": "Report Entity Dedup (simulazione)"
+    },
+    "notify_summary": {
+      "message": "Corrette: {fixed} · Saltate: {skipped} · Da correggere: {would_fix} · Errori: {errors}"
+    },
+    "notify_threshold": {
+      "message": "Limite superato: {count} casi idonei > {max}. Nessuna correzione; usa run_now con ignore_limit per procedere."
+    },
+    "notify_extra_orphans": {
+      "message": "orfane extra: {extras}"
+    },
+    "notify_more_references": {
+      "message": "… e altri {count} riferimenti"
+    },
+    "notify_statistics": {
+      "message": "le statistiche a lungo termine di {live} possono restare orfane (Strumenti per sviluppatori → Statistiche)"
+    },
+    "notify_error": {
+      "message": "errore: {error}"
+    },
+    "notify_aborted": {
+      "message": "Esecuzione interrotta: un rollback è fallito. Lo snapshot resta nel log, verifica il registro a mano."
+    },
+    "notify_interrupted_header": {
+      "message": "Casi interrotti (Home Assistant fermato durante una correzione; snapshot nel log, nessun ripristino automatico):"
+    },
+    "notify_footer": {
+      "message": "Dettagli completi: azione `entity_dedup.get_log`."
+    },
+    "notify_outcome_fixed": {
+      "message": "corretta"
+    },
+    "notify_outcome_skipped": {
+      "message": "saltata"
+    },
+    "notify_outcome_would_fix": {
+      "message": "sarebbe corretta"
+    },
+    "notify_outcome_error_rollback": {
+      "message": "errore, ripristinata"
+    },
+    "notify_outcome_error_rollback_failed": {
+      "message": "errore, RIPRISTINO FALLITO"
+    }
+  }
+}

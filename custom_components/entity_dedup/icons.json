@@ -1,0 +1,19 @@
+{
+  "entity": {
+    "sensor": {
+      "last_run": { "default": "mdi:history" },
+      "last_fixed": { "default": "mdi:merge" },
+      "last_skipped": { "default": "mdi:debug-step-over" }
+    },
+    "switch": {
+      "enabled": {
+        "default": "mdi:content-duplicate",
+        "state": { "off": "mdi:pause-circle-outline" }
+      }
+    }
+  },
+  "services": {
+    "run_now": { "service": "mdi:merge" },
+    "get_log": { "service": "mdi:text-box-search-outline" }
+  }
+}
