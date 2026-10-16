@@ -192,4 +192,4 @@ pip install -r requirements_test.txt
 ruff check . && python tools/check_consistency.py && pytest -q
 ```
 
-CI workflows are in [`ci/`](ci/README.md): copy them to `.github/workflows/`.
+CI: hassfest, HACS validation and tests run from `.github/workflows/`.
